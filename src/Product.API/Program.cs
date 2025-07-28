@@ -10,7 +10,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IProductRepository, EfProductRepository>();
-builder.Services.AddScoped<ProductService>();
+
+builder.Services.AddScoped<IProductService, ProductService>();
+
+builder.Services.AddControllers();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
