@@ -4,8 +4,8 @@
 using var client = new HttpClient();
 
 //Ersetzen Sie XXXX durch den Port, auf dem Ihre API läuft.
-string apiUrl = "https://localhost:7142/api/product";
-int numberOfRequests = 100;
+string apiUrl = "http://localhost:5211/swagger"; //api/product";
+int numberOfRequests = 10000;
 
 Console.WriteLine($"Starte {numberOfRequests} Anfragen an: {apiUrl}");
 
