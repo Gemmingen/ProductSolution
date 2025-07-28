@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Product.Business.Models;
-using Product.Business.Services;
 using Product.API.Models;
+using Product.Business.Interfaces;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace Product.API.Controllers
 {
@@ -9,15 +12,16 @@ namespace Product.API.Controllers
     [ApiController]
     public class ProductController : ControllerBase
     {
-        private readonly ProductService _service;
+        private readonly IProductService _service;
 
-        public ProductController(ProductService service)
+        // Abhängigkeit vom Interface statt von der Klasse
+        public ProductController(IProductService service)
         {
             _service = service;
         }
 
         [HttpPost]
-        public IActionResult CreateProduct([FromBody] CreateProductRequest request)
+        public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request, CancellationToken cancellationToken)
         {
             var product = new ProductModel
             {
@@ -26,7 +30,7 @@ namespace Product.API.Controllers
                 Category = request.Category
             };
 
-            _service.Create(product);
+            await _service.CreateAsync(product, cancellationToken);
 
             var response = new ProductResponse
             {
@@ -39,61 +43,65 @@ namespace Product.API.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetProducts()
+        public async Task<IActionResult> GetProducts(CancellationToken cancellationToken)
         {
-            var products = _service.GetAll().Select(p => new ProductResponse
+            var products = await _service.GetAllAsync(cancellationToken);
+            var response = products.Select(p => new ProductResponse
             {
                 Id = p.Id,
                 Name = p.Name,
                 Price = p.Price
             });
 
-            return Ok(products);
+            return Ok(response);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetProductById(int id)
+        public async Task<IActionResult> GetProductById(int id, CancellationToken cancellationToken)
         {
-            var product = _service.GetById(id);
+            var product = await _service.GetByIdAsync(id, cancellationToken);
             if (product == null) return NotFound();
 
-            return Ok(new ProductResponse
+            var response = new ProductResponse
             {
                 Id = product.Id,
                 Name = product.Name,
                 Price = product.Price
-            });
+            };
+            return Ok(response);
         }
 
         [HttpGet("search/{name}")]
-        public IActionResult GetProductByName(string name)
+        public async Task<IActionResult> GetProductByName(string name, CancellationToken cancellationToken)
         {
-            var product = _service.GetByName(name);
+            var product = await _service.GetByNameAsync(name, cancellationToken);
             if (product == null) return NotFound();
 
-            return Ok(new ProductResponse
+            var response = new ProductResponse
             {
                 Id = product.Id,
                 Name = product.Name,
                 Price = product.Price
-            });
+            };
+            return Ok(response);
         }
 
         [HttpDelete("{id}")]
-        public IActionResult DeleteProduct(int id)
+        public async Task<IActionResult> DeleteProduct(int id, CancellationToken cancellationToken)
         {
-            _service.Delete(id);
+            await _service.DeleteAsync(id, cancellationToken);
             return NoContent();
         }
 
         [HttpPut("{id}")]
-        public IActionResult UpdateProduct(int id, [FromBody] UpdateProductRequest request)
+        public async Task<IActionResult> UpdateProduct(int id, [FromBody] UpdateProductRequest request, CancellationToken cancellationToken)
         {
-            var product = _service.GetById(id);
+            var product = await _service.GetByIdAsync(id, cancellationToken);
             if (product == null) return NotFound();
 
             product.Price = request.Price;
-            _service.Update(product);
+            // Hinweis: Um mehr als nur den Preis zu aktualisieren, müssten hier mehr Felder zugewiesen werden.
+            await _service.UpdateAsync(product, cancellationToken);
 
             return Ok();
         }

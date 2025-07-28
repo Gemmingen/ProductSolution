@@ -1,7 +1,12 @@
-﻿using Product.Business.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using Product.Business.Interfaces;
 using Product.Business.Models;
-using Product.Repository.Entities;
 using Product.Repository.Data;
+using Product.Repository.Entities;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Product.Repository.Repositories;
 
@@ -14,41 +19,49 @@ public class EfProductRepository : IProductRepository
         _context = context;
     }
 
-    public IEnumerable<ProductModel> GetAll() =>
-        _context.Products.Select(ToModel).ToList();
+    public async Task<IEnumerable<ProductModel>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await _context.Products
+            .Select(p => ToModel(p))
+            .ToListAsync(cancellationToken);
 
-    public ProductModel? GetById(int id) =>
-        _context.Products.Where(p => p.Id == id).Select(ToModel).FirstOrDefault();
+    public async Task<ProductModel?> GetByIdAsync(int id, CancellationToken cancellationToken = default) =>
+        await _context.Products
+            .Where(p => p.Id == id)
+            .Select(p => ToModel(p))
+            .FirstOrDefaultAsync(cancellationToken);
 
-    public ProductModel? GetByName(string name) =>
-        _context.Products.Where(p => p.Name == name).Select(ToModel).FirstOrDefault();
+    public async Task<ProductModel?> GetByNameAsync(string name, CancellationToken cancellationToken = default) =>
+        await _context.Products
+            .Where(p => p.Name == name)
+            .Select(p => ToModel(p))
+            .FirstOrDefaultAsync(cancellationToken);
 
-    public void Add(ProductModel model)
+    public async Task CreateAsync(ProductModel model, CancellationToken cancellationToken = default)
     {
         var entity = ToEntity(model);
-        _context.Products.Add(entity);
-        _context.SaveChanges();
+        await _context.Products.AddAsync(entity, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
         model.Id = entity.Id;
     }
 
-    public void Update(ProductModel model)
+    public async Task UpdateAsync(ProductModel model, CancellationToken cancellationToken = default)
     {
-        var entity = _context.Products.Find(model.Id);
+        var entity = await _context.Products.FindAsync(new object[] { model.Id }, cancellationToken);
         if (entity == null) return;
 
         entity.Name = model.Name;
         entity.Price = model.Price;
         entity.Category = model.Category;
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
-    public void Delete(int id)
+    public async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
     {
-        var entity = _context.Products.Find(id);
+        var entity = await _context.Products.FindAsync(new object[] { id }, cancellationToken);
         if (entity == null) return;
 
         _context.Products.Remove(entity);
-        _context.SaveChanges();
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     private static ProductModel ToModel(ProductEntity entity) => new()
